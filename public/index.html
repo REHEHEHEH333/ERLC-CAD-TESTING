@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police CAD/MDT System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">Police CAD/MDT System</div>
+            <div class="nav-links">
+                <button class="nav-btn" onclick="switchMode('dispatch')">CAD (Dispatch)</button>
+                <button class="nav-btn" onclick="switchMode('officer')">MDT (Officer)</button>
+                <button class="nav-btn" onclick="logOut()">Log Out</button>
+            </div>
+        </nav>
+
+        <!-- Login Screen -->
+        <div id="loginScreen" class="modal-overlay active">
+            <div class="login-container">
+                <div class="login-box">
+                    <h1>Police CAD/MDT System</h1>
+                    <div class="login-tabs">
+                        <button class="login-tab-btn active" onclick="switchLoginTab('login')">Login</button>
+                        <button class="login-tab-btn" onclick="switchLoginTab('register')">Register</button>
+                    </div>
+                    
+                    <!-- Login Form -->
+                    <form id="loginForm" class="login-tab-content active">
+                        <div class="form-group">
+                            <label for="userRole">Select Role:</label>
+                            <select id="userRole" required>
+                                <option value="">-- Choose Role --</option>
+                                <option value="dispatcher">Dispatcher</option>
+                                <option value="officer">Police Officer</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginBadge">Badge Number:</label>
+                            <input type="text" id="loginBadge" placeholder="Enter your badge number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password:</label>
+                            <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <p class="demo-creds">Demo: Badge: 1001 | Password: test123</p>
+                    </form>
+
+                    <!-- Register Form -->
+                    <form id="registerForm" class="login-tab-content">
+                        <div class="form-group">
+                            <label for="regRole">Select Role:</label>
+                            <select id="regRole" required>
+                                <option value="">-- Choose Role --</option>
+                                <option value="dispatcher">Dispatcher</option>
+                                <option value="officer">Police Officer</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="regName">Full Name:</label>
+                            <input type="text" id="regName" placeholder="Enter your full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regBadge">Badge Number:</label>
+                            <input type="text" id="regBadge" placeholder="Enter your badge number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regPassword">Password:</label>
+                            <input type="password" id="regPassword" placeholder="Enter your password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dispatcher CAD Interface -->
+        <div id="dispatcherScreen" class="screen">
+            <div class="dispatch-layout">
+                <!-- Left Panel: Active Calls -->
+                <div class="panel left-panel">
+                    <div class="panel-header">
+                        <h2>Active Calls</h2>
+                        <span class="badge" id="callCount">0</span>
+                    </div>
+                    <button class="btn btn-success" onclick="openCreateCall()">+ New Call</button>
+                    <div class="calls-list" id="activeCallsList"></div>
+                </div>
+
+                <!-- Middle Panel: Call Details -->
+                <div class="panel middle-panel">
+                    <div class="panel-header">
+                        <h2>Call Details</h2>
+                    </div>
+                    <div id="callDetailsContainer" class="call-details">
+                        <p class="placeholder">Select a call to view details</p>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Units & Status -->
+                <div class="panel right-panel">
+                    <div class="panel-header">
+                        <h2>Available Units</h2>
+                    </div>
+                    <div class="units-list" id="unitsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Officer MDT Interface -->
+        <div id="officerScreen" class="screen">
+            <div class="mdt-layout">
+                <!-- Top: Officer Info & Status -->
+                <div class="mdt-header">
+                    <div class="officer-info">
+                        <h2 id="officerName">Officer Name</h2>
+                        <p id="officerBadge">Badge: N/A</p>
+                    </div>
+                    <div class="status-selector">
+                        <label for="unitStatus">Unit Status:</label>
+                        <select id="unitStatus" onchange="updateUnitStatus()">
+                            <option value="available">Available</option>
+                            <option value="busy">Busy</option>
+                            <option value="on-call">On Call</option>
+                            <option value="meal">Meal Break</option>
+                            <option value="10-7">Off Duty</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="mdt-content">
+                    <!-- Tabs -->
+                    <div class="mdt-tabs">
+                        <button class="tab-btn active" onclick="switchTab('my-calls')">My Calls</button>
+                        <button class="tab-btn" onclick="switchTab('all-calls')">All Calls</button>
+                        <button class="tab-btn" onclick="switchTab('citizens')">Citizen DB</button>
+                        <button class="tab-btn" onclick="switchTab('vehicles')">Vehicle DB</button>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <!-- My Calls Tab -->
+                        <div id="tab-my-calls" class="tab-pane active">
+                            <div class="mdt-calls-list" id="officerCalls"></div>
+                        </div>
+
+                        <!-- All Calls Tab -->
+                        <div id="tab-all-calls" class="tab-pane">
+                            <div class="mdt-calls-list" id="allCallsList"></div>
+                        </div>
+
+                        <!-- Citizen Database Tab -->
+                        <div id="tab-citizens" class="tab-pane">
+                            <div class="search-box">
+                                <input type="text" id="citizenSearch" placeholder="Search by name or ID..." onkeyup="searchCitizens()">
+                            </div>
+                            <div class="database-list" id="citizensList"></div>
+                        </div>
+
+                        <!-- Vehicle Database Tab -->
+                        <div id="tab-vehicles" class="tab-pane">
+                            <div class="search-box">
+                                <input type="text" id="vehicleSearch" placeholder="Search by plate or VIN..." onkeyup="searchVehicles()">
+                            </div>
+                            <div class="database-list" id="vehiclesList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Create New Call -->
+    <div id="createCallModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Call</h2>
+                <button class="close-btn" onclick="closeCreateCall()">&times;</button>
+            </div>
+            <form id="createCallForm" onsubmit="submitCreateCall(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="callType">Call Type:</label>
+                        <select id="callType" required>
+                            <option value="">-- Select Type --</option>
+                            <option value="welfare-check">Welfare Check</option>
+                            <option value="noise">Noise Complaint</option>
+                            <option value="traffic-stop">Traffic Stop</option>
+                            <option value="assault">Assault</option>
+                            <option value="robbery">Robbery</option>
+                            <option value="burglary">Burglary</option>
+                            <option value="accident">Traffic Accident</option>
+                            <option value="suspicious">Suspicious Activity</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="callPriority">Priority:</label>
+                        <select id="callPriority" required>
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="emergency">Emergency (Code 3)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="callLocation">Location/Address:</label>
+                        <input type="text" id="callLocation" placeholder="Enter address" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="callDescription">Description:</label>
+                        <textarea id="callDescription" placeholder="Describe the call" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="callCaller">Caller Name:</label>
+                        <input type="text" id="callCaller" placeholder="Enter caller name">
+                    </div>
+                    <div class="form-group">
+                        <label for="callPhone">Phone Number:</label>
+                        <input type="text" id="callPhone" placeholder="Enter phone number">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">Create Call</button>
+                    <button type="button" class="btn btn-cancel" onclick="closeCreateCall()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Call Details (Officer View) -->
+    <div id="callDetailsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Call Details</h2>
+                <button class="close-btn" onclick="closeCallDetails()">&times;</button>
+            </div>
+            <div id="callDetailsContent" class="call-details-modal-content"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
